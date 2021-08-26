@@ -21,19 +21,42 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
     if (msg.type === "create-counter") {
         const shape = figma.createShapeWithText();
         shape.shapeType = "ROUNDED_RECTANGLE";
-        shape.name = "body";
+        shape.name = "option1";
+        shape.text.characters = shape.name;
+        shape.text.fontSize = 24;
+        const shape2 = figma.createShapeWithText();
+        shape2.shapeType = "ROUNDED_RECTANGLE";
+        shape2.name = "option2";
+        shape2.text.characters = shape2.name;
+        shape2.text.fontSize = 24;
+        const container = figma.createFrame();
+        container.layoutMode = "HORIZONTAL";
+        container.itemSpacing = 16;
+        container.appendChild(shape);
+        container.appendChild(shape2);
+        container.primaryAxisAlignItems = "SPACE_BETWEEN";
+        container.name = "container";
+        container.resize(400 + 400 + 16, 420);
         shape.resize(400, 400);
-        const counterText = figma.createText();
-        counterText.characters = `${PREV_TEXT}0`;
-        counterText.fontSize = 36;
-        counterText.name = "text";
-        counterText.x = shape.x;
-        counterText.y = shape.y - counterText.height * 1.5;
-        const _group = figma.group([shape, counterText], figma.currentPage);
-        console.log("group ID", _group.id);
+        shape2.resize(400, 400);
+        const pollTitle = figma.createText();
+        pollTitle.characters = `you like which kind of fruit?`;
+        pollTitle.fontSize = 36;
+        pollTitle.resize(pollTitle.width, pollTitle.fontSize * 1.25);
+        pollTitle.name = "title";
+        const containerWrapper = figma.createFrame();
+        containerWrapper.layoutMode = "VERTICAL";
+        containerWrapper.itemSpacing = 4;
+        containerWrapper.appendChild(pollTitle);
+        containerWrapper.appendChild(container);
+        containerWrapper.paddingLeft = 4;
+        containerWrapper.paddingRight = 4;
+        containerWrapper.paddingTop = 4;
+        containerWrapper.paddingTop = 4;
+        containerWrapper.resize(400 + 400 + 16, container.height + pollTitle.height + 4);
         // store in clientStorage
         figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
-            const _data = [...data, _group.id];
+            const _data = [...data, containerWrapper.id];
             figma.clientStorage.setAsync(USER_DATA_ENDPOINT, _data);
         });
     }
@@ -80,17 +103,16 @@ setInterval(() => {
     if (allStampPos) {
         figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => __awaiter(this, void 0, void 0, function* () {
             data === null || data === void 0 ? void 0 : data.forEach((itemID) => {
-                const element = figma.currentPage.findChild((e) => e.id === itemID);
-                // get group, find the sticky inside the group
-                if (element) {
-                    const area = element.findChild((e) => e.name === "body");
-                    const text = element.findChild((e) => e.name.includes("text"));
-                    if (area && text) {
-                        const areaPos = getElementPos(area);
+                const poll = figma.currentPage.findChild((e) => e.id === itemID);
+                // get Frame, find the sticky inside the group
+                if (poll) {
+                    const options = poll.findChild((e) => e.name === "container");
+                    options === null || options === void 0 ? void 0 : options.children.map((option) => {
+                        const areaPos = getElementPos(option);
                         const count = calcStampInArea(areaPos, allStampPos);
-                        text.characters = `${PREV_TEXT} ${count}`;
-                        text.name = `text${count}`;
-                    }
+                        console.log(`calc...${option.name} | 🗳 ${count}`);
+                        option.text.characters = `${option.name} | 🗳 ${count}`;
+                    });
                 }
             });
         }));
