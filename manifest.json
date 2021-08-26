@@ -1,0 +1,10 @@
+{
+  "name": "vote counter",
+  "id": "1012008792333568747",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": [
+    "figjam"
+  ],
+  "ui": "ui.html"
+}

@@ -1,0 +1,23 @@
+<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
+
+<h2 class="mt-2 text-gray-700 text-lg font-bold text-center">Vote counter</h2>
+<div class="p-2 px-8 flex flex-col item-center space-y-2">
+  <button id="create" class="text-sm p-2 text-gray-600 border-solid bg-green-200 border-green-300 border-2 rounded-lg">
+    🗳 &nbsp; Create counter</button>
+  <button id="remove" class="text-sm p-2 text-gray-600 border-solid bg-red-200 border-red-300 border-2 rounded-lg">
+    ♻️ &nbsp; clean up data</button>
+    <button id="find" class="text-sm p-2 text-gray-600 border-solid bg-yellow-200 border-yellow-300 border-2 rounded-lg">
+      👑 &nbsp; find winner</button>
+</div>
+
+<script>
+  document.getElementById('create').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'create-counter' } }, '*')
+  }
+  document.getElementById('remove').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'remove-counters' } }, '*')
+  }
+  document.getElementById('find').onclick = () => {
+    parent.postMessage({ pluginMessage: { type: 'find-counter' } }, '*')
+  }
+</script>
