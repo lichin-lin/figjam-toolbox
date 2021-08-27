@@ -2,9 +2,10 @@
   "name": "vote counter",
   "id": "1012008792333568747",
   "api": "1.0.0",
-  "main": "code.js",
+  "main": "dist/code.js",
   "editorType": [
-    "figjam"
+    "figjam",
+    "figma"
   ],
-  "ui": "ui.html"
+  "ui": "dist/ui.html"
 }

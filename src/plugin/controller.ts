@@ -1,18 +1,19 @@
-figma.showUI(__html__, { width: 300, height: 200 });
+figma.showUI(__html__, {width: 300, height: 400});
 const PREV_TEXT = `🗳 vote(s): `;
-const USER_DATA_ENDPOINT = "user_data";
+const USER_DATA_ENDPOINT = 'user_data';
 
 interface PollType {
   id: string;
   title?: string;
-  options: OptionType[];
+  options?: OptionType[];
 }
 interface OptionType {
   id: string;
   title?: string;
 }
 
-figma.loadFontAsync({ family: "Inter", style: "Medium" });
+figma.loadFontAsync({family: 'Roboto', style: 'Regular'});
+figma.loadFontAsync({family: 'Inter', style: 'Medium'});
 figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
   if (!data) {
     figma.clientStorage.setAsync(USER_DATA_ENDPOINT, []);
@@ -21,56 +22,52 @@ figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
 });
 
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === "create-counter") {
-    const shape = figma.createShapeWithText();
-    shape.shapeType = "ROUNDED_RECTANGLE";
-    shape.name = "option1";
-    shape.text.characters = shape.name;
-    shape.text.fontSize = 24;
-
-    const shape2 = figma.createShapeWithText();
-    shape2.shapeType = "ROUNDED_RECTANGLE";
-    shape2.name = "option2";
-    shape2.text.characters = shape2.name;
-    shape2.text.fontSize = 24;
+  if (msg.type === 'create-counter') {
+    const {pollTitle, options} = msg.data;
 
     const container = figma.createFrame();
-    container.layoutMode = "HORIZONTAL";
+    container.layoutMode = 'HORIZONTAL';
     container.itemSpacing = 16;
-    container.appendChild(shape);
-    container.appendChild(shape2);
-    container.primaryAxisAlignItems = "SPACE_BETWEEN";
-    container.name = "container";
-    container.resize(400 + 400 + 16, 420);
-    shape.resize(400, 400);
-    shape2.resize(400, 400);
+    container.fills = [];
+    container.primaryAxisAlignItems = 'SPACE_BETWEEN';
+    container.counterAxisSizingMode = 'AUTO';
+    container.name = 'container';
 
-    const pollTitle = figma.createText();
-    pollTitle.characters = `you like which kind of fruit?`;
-    pollTitle.fontSize = 36;
-    pollTitle.resize(pollTitle.width, pollTitle.fontSize * 1.25);
-    pollTitle.name = "title";
+    options.forEach((option) => {
+      const shape = figma.createShapeWithText();
+      shape.shapeType = 'ROUNDED_RECTANGLE';
+      shape.name = option?.title;
+      shape.text.characters = shape.name;
+      shape.text.fontSize = 24;
+      container.appendChild(shape);
+      shape.resize(400, 400);
+    });
+
+    const pollTitleElm = figma.createText();
+    pollTitleElm.characters = pollTitle;
+    pollTitleElm.fontSize = 36;
+    pollTitleElm.resize(pollTitleElm.width, pollTitleElm.fontSize * 1.25);
+    pollTitleElm.name = 'title';
 
     const containerWrapper = figma.createFrame();
-    containerWrapper.layoutMode = "VERTICAL";
+    containerWrapper.layoutMode = 'VERTICAL';
     containerWrapper.itemSpacing = 4;
-    containerWrapper.appendChild(pollTitle);
+    containerWrapper.appendChild(pollTitleElm);
     containerWrapper.appendChild(container);
     containerWrapper.paddingLeft = 4;
     containerWrapper.paddingRight = 4;
     containerWrapper.paddingTop = 4;
     containerWrapper.paddingTop = 4;
-    containerWrapper.resize(
-      400 + 400 + 16,
-      container.height + pollTitle.height + 4
-    );
+    containerWrapper.fills = [];
+    containerWrapper.primaryAxisSizingMode = 'AUTO';
+    containerWrapper.counterAxisSizingMode = 'AUTO';
 
     // store in clientStorage
     figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
       const _data = [...data, containerWrapper.id];
       figma.clientStorage.setAsync(USER_DATA_ENDPOINT, _data);
     });
-  } else if (msg.type === "remove-counters") {
+  } else if (msg.type === 'remove-counters') {
     figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
       data?.forEach((itemID: string) => {
         const element = figma.currentPage.findChild((e) => e.id === itemID);
@@ -80,18 +77,14 @@ figma.ui.onmessage = async (msg) => {
       });
       figma.clientStorage.setAsync(USER_DATA_ENDPOINT, []);
     });
-  } else if (msg.type === "find-counter") {
+  } else if (msg.type === 'find-counter') {
     figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
       if (!data) return;
       let winnerIndex = -1;
       const countList = data?.map((itemID: string) => {
-        const element: GroupNode = figma.currentPage.findChild(
-          (e) => e.id === itemID
-        ) as GroupNode;
+        const element: GroupNode = figma.currentPage.findChild((e) => e.id === itemID) as GroupNode;
         if (element) {
-          const text = element.findChild((e) =>
-            e.name.includes("text")
-          ) as TextNode;
+          const text = element.findChild((e) => e.name.includes('text')) as TextNode;
           const count = parseInt(text.name.slice(4), 10);
           return count || 0;
         }
@@ -99,9 +92,7 @@ figma.ui.onmessage = async (msg) => {
       });
       winnerIndex = indexOflargest(countList);
       if (winnerIndex !== -1) {
-        const toNode = [
-          figma.currentPage.findChild((c) => c.id === data[winnerIndex]),
-        ];
+        const toNode = [figma.currentPage.findChild((c) => c.id === data[winnerIndex])];
         figma.currentPage.selection = toNode;
         figma.viewport.scrollAndZoomIntoView(toNode);
       }
@@ -110,20 +101,17 @@ figma.ui.onmessage = async (msg) => {
 };
 
 setInterval(() => {
-  const allStampElements = figma.currentPage.findAll((e) => e.type === "STAMP");
+  // return;
+  const allStampElements = figma.currentPage.findAll((e) => e.type === 'STAMP');
   const allStampPos = allStampElements.map((element) => getElementPos(element));
   // check allStampPos if inside the counter:
   if (allStampPos) {
     figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
       data?.forEach((itemID: string) => {
-        const poll: FrameNode = figma.currentPage.findChild(
-          (e) => e.id === itemID
-        ) as FrameNode;
+        const poll: FrameNode = figma.currentPage.findChild((e) => e.id === itemID) as FrameNode;
         // get Frame, find the sticky inside the group
         if (poll) {
-          const options = poll.findChild(
-            (e) => e.name === "container"
-          ) as FrameNode;
+          const options = poll.findChild((e) => e.name === 'container') as FrameNode;
           options?.children.map((option: ShapeWithTextNode) => {
             const areaPos = getElementPos(option);
             const count = calcStampInArea(areaPos, allStampPos);
@@ -148,12 +136,7 @@ const getElementPos = (element) => {
 const calcStampInArea = (area, stamps) => {
   let result = 0;
   stamps.forEach((stamp) => {
-    if (
-      stamp.x1 > area.x0 &&
-      stamp.x0 < area.x1 &&
-      stamp.y1 > area.y0 &&
-      stamp.y0 < area.y1
-    ) {
+    if (stamp.x1 > area.x0 && stamp.x0 < area.x1 && stamp.y1 > area.y0 && stamp.y0 < area.y1) {
       result += 1;
     }
   });
