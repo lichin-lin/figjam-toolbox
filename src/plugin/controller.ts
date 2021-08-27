@@ -1,5 +1,4 @@
 figma.showUI(__html__, {width: 300, height: 400});
-const PREV_TEXT = `🗳 vote(s): `;
 const USER_DATA_ENDPOINT = 'user_data';
 
 interface PollType {
@@ -24,7 +23,9 @@ figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'create-counter') {
     const {pollTitle, options} = msg.data;
+    if (options.length < 1) return;
 
+    let optionsData: OptionType[] = [];
     const container = figma.createFrame();
     container.layoutMode = 'HORIZONTAL';
     container.itemSpacing = 16;
@@ -36,15 +37,22 @@ figma.ui.onmessage = async (msg) => {
     options.forEach((option) => {
       const shape = figma.createShapeWithText();
       shape.shapeType = 'ROUNDED_RECTANGLE';
-      shape.name = option?.title;
+      shape.name = option?.title || '';
       shape.text.characters = shape.name;
       shape.text.fontSize = 24;
       container.appendChild(shape);
       shape.resize(400, 400);
+      optionsData = [
+        ...optionsData,
+        {
+          id: shape.id,
+          title: option?.title || '',
+        },
+      ];
     });
 
     const pollTitleElm = figma.createText();
-    pollTitleElm.characters = pollTitle;
+    pollTitleElm.characters = pollTitle || '';
     pollTitleElm.fontSize = 36;
     pollTitleElm.resize(pollTitleElm.width, pollTitleElm.fontSize * 1.25);
     pollTitleElm.name = 'title';
@@ -63,19 +71,27 @@ figma.ui.onmessage = async (msg) => {
     containerWrapper.counterAxisSizingMode = 'AUTO';
 
     // store in clientStorage
-    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
-      const _data = [...data, containerWrapper.id];
+    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data: PollType[]) => {
+      const _data: PollType[] = [...data, {id: containerWrapper.id, title: pollTitle, options: optionsData}];
       figma.clientStorage.setAsync(USER_DATA_ENDPOINT, _data);
+      figma.ui.postMessage({
+        type: 'sync-polls',
+        message: _data,
+      });
     });
   } else if (msg.type === 'remove-counters') {
-    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
-      data?.forEach((itemID: string) => {
-        const element = figma.currentPage.findChild((e) => e.id === itemID);
+    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data: PollType[]) => {
+      data?.forEach((datum: PollType) => {
+        const element = figma.currentPage.findChild((e) => e.id === datum.id);
         if (element) {
           element.remove();
         }
       });
       figma.clientStorage.setAsync(USER_DATA_ENDPOINT, []);
+      figma.ui.postMessage({
+        type: 'sync-polls',
+        message: [],
+      });
     });
   } else if (msg.type === 'find-counter') {
     figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
@@ -97,6 +113,19 @@ figma.ui.onmessage = async (msg) => {
         figma.viewport.scrollAndZoomIntoView(toNode);
       }
     });
+  } else if (msg.type === 'fetch-polls') {
+    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data: PollType[]) => {
+      figma.ui.postMessage({
+        type: 'sync-polls',
+        message: data,
+      });
+    });
+  } else if (msg.type === 'select-counter') {
+    const element = figma.currentPage.findChild((e) => e.id === msg.id);
+    if (element) {
+      figma.currentPage.selection = [element];
+      figma.viewport.scrollAndZoomIntoView([element]);
+    }
   }
 };
 
@@ -106,9 +135,9 @@ setInterval(() => {
   const allStampPos = allStampElements.map((element) => getElementPos(element));
   // check allStampPos if inside the counter:
   if (allStampPos) {
-    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data) => {
-      data?.forEach((itemID: string) => {
-        const poll: FrameNode = figma.currentPage.findChild((e) => e.id === itemID) as FrameNode;
+    figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then(async (data: PollType[]) => {
+      data?.forEach((datum: PollType) => {
+        const poll: FrameNode = figma.currentPage.findChild((e) => e.id === datum.id) as FrameNode;
         // get Frame, find the sticky inside the group
         if (poll) {
           const options = poll.findChild((e) => e.name === 'container') as FrameNode;

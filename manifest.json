@@ -1,11 +1,10 @@
 {
-  "name": "vote counter",
+  "name": "FigJam Polls",
   "id": "1012008792333568747",
   "api": "1.0.0",
   "main": "dist/code.js",
   "editorType": [
-    "figjam",
-    "figma"
+    "figjam"
   ],
   "ui": "dist/ui.html"
 }

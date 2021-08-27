@@ -1,11 +1,14 @@
 import {
+  Box,
   Button,
+  Center,
   Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerOverlay,
+  HStack,
   Input,
   InputGroup,
   InputRightElement,
@@ -22,22 +25,13 @@ interface OptionType {
 
 const VCButton = ({children, ...props}) => {
   return (
-    <Button
-      width="100%"
-      fontSize="sm"
-      padding="2"
-      color="gray.600"
-      background="gray.200"
-      border="2px"
-      borderColor="gray.300"
-      borderRadius="md"
-      {...props}
-    >
+    <Button width="100%" fontSize="sm" padding="2" {...props}>
       {children}
     </Button>
   );
 };
 const App = ({}) => {
+  const [polls, setPolls] = React.useState([]);
   const [options, setOptions] = React.useState<OptionType[]>([]);
   const [pollTitle, setPollTitle] = React.useState<string>();
   const {isOpen, onOpen, onClose} = useDisclosure();
@@ -46,13 +40,16 @@ const App = ({}) => {
     onOpen();
     setOptions([
       {
-        title: 'option1',
+        title: 'option 1',
       },
       {
-        title: 'option2',
+        title: 'option 2',
       },
     ]);
     return;
+  };
+  const onAddOption = () => {
+    setOptions((options) => [...options, {title: null}]);
   };
   const onEditOption = (e: React.ChangeEvent<HTMLInputElement>, id: number) => {
     setOptions((options) => [...options.slice(0, id), {title: e.target.value}, ...options.slice(id + 1)]);
@@ -67,6 +64,9 @@ const App = ({}) => {
     parent.postMessage({pluginMessage: {type: 'create-counter', data: {pollTitle, options}}}, '*');
     onClose();
   };
+  const onZoomToPoll = (id) => {
+    parent.postMessage({pluginMessage: {type: 'select-counter', id}}, '*');
+  };
   const onRemove = () => {
     parent.postMessage({pluginMessage: {type: 'remove-counters'}}, '*');
   };
@@ -76,15 +76,18 @@ const App = ({}) => {
   React.useEffect(() => {
     window.onmessage = (event) => {
       const {type, message} = event.data.pluginMessage;
-      console.log(type, message);
+      if (type === 'sync-polls') {
+        console.log(message);
+        setPolls(message);
+      }
     };
+  }, []);
+  React.useEffect(() => {
+    parent.postMessage({pluginMessage: {type: 'fetch-polls'}}, '*');
   }, []);
 
   return (
-    <VStack width="100%" padding="8">
-      <VCButton ref={btnRef} onClick={onAddPoll}>
-        🗳 &nbsp; Add a Poll
-      </VCButton>
+    <VStack width="100%" height="100%" padding="0">
       <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} finalFocusRef={btnRef}>
         <DrawerOverlay />
         <DrawerContent>
@@ -97,17 +100,23 @@ const App = ({}) => {
             </VStack>
             <Divider borderColor="gray.100"></Divider>
             <VStack padding="4" alignItems="flex-start">
-              <Text color="gray.600" fontSize="sm" fontWeight="bold" marginBottom="1">
-                Options
-              </Text>
+              <HStack justifyContent="space-between" alignItems="center" width="100%" paddingRight="2">
+                <Text color="gray.600" fontSize="sm" fontWeight="bold" marginBottom="1">
+                  Options
+                </Text>
+                <Button size="xs" color="blue.500" variant="ghost" onClick={onAddOption}>
+                  + ADD
+                </Button>
+              </HStack>
               <VStack minHeight="100px" width="100%">
                 {options.map((option, id) => (
-                  <InputGroup size="sm" paddingRight="1">
+                  <InputGroup size="sm" paddingRight="1" key={id}>
                     <Input
                       pr="4.5rem"
                       variant="filled"
                       borderRadius="md"
                       value={option?.title}
+                      placeholder="option..."
                       onChange={(e) => onEditOption(e, id)}
                       size="sm"
                     />
@@ -117,9 +126,7 @@ const App = ({}) => {
                         size="xs"
                         borderRadius="md"
                         onClick={() => onDeleteOption(id)}
-                        colorScheme="gray"
-                        borderWidth="2px"
-                        borderColor="gray.300"
+                        colorScheme="red"
                       >
                         Delete
                       </Button>
@@ -130,7 +137,7 @@ const App = ({}) => {
             </VStack>
           </DrawerBody>
 
-          <DrawerFooter paddingX="4" paddingY="2" borderTop="1px" borderColor="gray.100">
+          <DrawerFooter paddingX="5" paddingY="2" borderTop="1px" borderColor="gray.100">
             <Button variant="outline" mr={3} onClick={onClose} size="sm">
               Cancel
             </Button>
@@ -140,8 +147,40 @@ const App = ({}) => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
-      <VCButton onClick={onRemove}>♻️ &nbsp; clean up data</VCButton>
+      <VStack flex="1" background="gray.50" width="100%" padding="4" spacing="4" overflowY="scroll">
+        {polls.length > 0 ? (
+          polls?.map((poll) => (
+            <Box
+              key={poll.id}
+              boxShadow="sm"
+              border="1px"
+              borderColor="gray.200"
+              padding="4"
+              rounded="md"
+              width="100%"
+              onClick={() => onZoomToPoll(poll.id)}
+              cursor={'pointer'}
+            >
+              <Text fontWeight="bold" color="gray.600">
+                {poll?.title}
+              </Text>
+              <Text fontWeight="normal" color="gray.400" fontSize="xs">{`${poll?.options.length} option(s)`}</Text>
+            </Box>
+          ))
+        ) : (
+          <Center width="100%" height="100%" fontSize="sm" color="gray.500">
+            👇 Start making your first polls
+          </Center>
+        )}
+      </VStack>
+      <VStack padding="4" paddingY="2" width="100%">
+        <VCButton ref={btnRef} onClick={onAddPoll} colorScheme="blue">
+          🗳 &nbsp; Add a Poll
+        </VCButton>
+        <VCButton onClick={onRemove} variant="ghost" size="xs" padding="4" color="red.500">
+          Remove All Polls
+        </VCButton>
+      </VStack>
       {/* <VCButton onClick={onFind}>👑 &nbsp; find winner</VCButton> */}
     </VStack>
   );
