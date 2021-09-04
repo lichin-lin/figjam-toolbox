@@ -129,8 +129,15 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
+figma.on('selectionchange', () => {
+  const stickys = figma.currentPage.selection.filter((n) => n.type === 'STICKY');
+  figma.ui.postMessage({
+    type: 'set-selectedSticky',
+    message: stickys,
+  });
+});
 setInterval(() => {
-  // return;
+  return;
   const allStampElements = figma.currentPage.findAll((e) => e.type === 'STAMP');
   const allStampPos = allStampElements.map((element) => getElementPos(element));
   // check allStampPos if inside the counter:

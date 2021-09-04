@@ -10,12 +10,15 @@ import {
   DrawerOverlay,
   HStack,
   Input,
+  IconButton,
+  Tooltip,
   InputGroup,
   InputRightElement,
   Text,
   useDisclosure,
   VStack,
 } from '@chakra-ui/react';
+import {UnlinkIcon, FocusIcon} from './Icons';
 import * as React from 'react';
 declare function require(path: string): any;
 
@@ -31,9 +34,10 @@ const VCButton = ({children, ...props}) => {
   );
 };
 const App = ({}) => {
-  const [polls, setPolls] = React.useState([]);
+  const [polls, setPolls] = React.useState([{title: 'werewkjfnejkngjrenkjreng', id: '123'}]);
   const [options, setOptions] = React.useState<OptionType[]>([]);
   const [pollTitle, setPollTitle] = React.useState<string>();
+  const [selectedSticky, setSelectedSticky] = React.useState<any[]>([]);
   const {isOpen, onOpen, onClose} = useDisclosure();
   const btnRef = React.useRef();
   const onAddPoll = () => {
@@ -77,13 +81,16 @@ const App = ({}) => {
     window.onmessage = (event) => {
       const {type, message} = event.data.pluginMessage;
       if (type === 'sync-polls') {
-        console.log(message);
+        console.log('polls', message);
         setPolls(message);
+      } else if (type === 'set-selectedSticky') {
+        console.log('set-selectedSticky', message);
+        setSelectedSticky(message);
       }
     };
   }, []);
   React.useEffect(() => {
-    parent.postMessage({pluginMessage: {type: 'fetch-polls'}}, '*');
+    // parent.postMessage({pluginMessage: {type: 'fetch-polls'}}, '*');
   }, []);
 
   return (
@@ -98,7 +105,7 @@ const App = ({}) => {
               </Text>
               <Input placeholder="which kind of..." size="md" value={pollTitle} onChange={onEditPollTitle} />
             </VStack>
-            <Divider borderColor="gray.100"></Divider>
+            {/* <Divider borderColor="gray.100"></Divider>
             <VStack padding="4" alignItems="flex-start">
               <HStack justifyContent="space-between" alignItems="center" width="100%" paddingRight="2">
                 <Text color="gray.600" fontSize="sm" fontWeight="bold" marginBottom="1">
@@ -134,7 +141,7 @@ const App = ({}) => {
                   </InputGroup>
                 ))}
               </VStack>
-            </VStack>
+            </VStack> */}
           </DrawerBody>
 
           <DrawerFooter paddingX="5" paddingY="2" borderTop="1px" borderColor="gray.100">
@@ -161,24 +168,56 @@ const App = ({}) => {
               onClick={() => onZoomToPoll(poll.id)}
               cursor={'pointer'}
             >
-              <Text fontWeight="bold" color="gray.600">
-                {poll?.title}
-              </Text>
-              <Text fontWeight="normal" color="gray.400" fontSize="xs">{`${poll?.options.length} option(s)`}</Text>
+              <HStack justifyContent="space-between">
+                <Text fontWeight="bold" color="gray.600" maxWidth="180px" isTruncated>
+                  {poll?.title}
+                </Text>
+                <HStack width="64px">
+                  <Tooltip label="Foucs to the poll">
+                    <IconButton
+                      aria-label="focus"
+                      icon={<FocusIcon />}
+                      size="sm"
+                      padding="6px"
+                      color="green.400"
+                      background="green.50"
+                      _hover={{
+                        background: 'green.100',
+                      }}
+                    ></IconButton>
+                  </Tooltip>
+                  <Tooltip label="Stop counting">
+                    <IconButton
+                      aria-label="unlink"
+                      icon={<UnlinkIcon />}
+                      size="sm"
+                      padding="6px"
+                      color="red.400"
+                      background="red.50"
+                      _hover={{
+                        background: 'red.100',
+                      }}
+                    ></IconButton>
+                  </Tooltip>
+                </HStack>
+              </HStack>
+              <Text fontWeight="normal" color="gray.400" fontSize="xs">{`${poll?.options?.length} option(s)`}</Text>
             </Box>
           ))
         ) : (
-          <Center width="100%" height="100%" fontSize="sm" color="gray.500">
-            👇 Start making your first polls
+          <Center width="100%" height="100%" fontSize="sm" color="gray.500" textAlign="center">
+            <p>
+              👇 Start making your first polls by <b>selecting some sticky on the canvas</b>
+            </p>
           </Center>
         )}
       </VStack>
       <VStack padding="4" paddingY="2" width="100%">
-        <VCButton ref={btnRef} onClick={onAddPoll} colorScheme="blue">
-          🗳 &nbsp; Add a Poll
+        <VCButton ref={btnRef} onClick={onAddPoll} colorScheme="blue" disabled={selectedSticky.length < 1}>
+          🗳 &nbsp; Add a Poll {selectedSticky.length > 0 && `with ${selectedSticky.length} option(s)`}
         </VCButton>
-        <VCButton onClick={onRemove} variant="ghost" size="xs" padding="4" color="red.500">
-          Remove All Polls
+        <VCButton onClick={onRemove} variant="ghost" size="xs" padding="4" color="red.400" disabled={polls.length < 1}>
+          Stop counting for all the Polls
         </VCButton>
       </VStack>
       {/* <VCButton onClick={onFind}>👑 &nbsp; find winner</VCButton> */}
