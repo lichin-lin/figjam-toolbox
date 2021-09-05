@@ -79,6 +79,9 @@ const App = ({}) => {
   // const onFind = () => {
   //   parent.postMessage({pluginMessage: {type: 'find-counter'}}, '*');
   // };
+  const sortByCount = (a, b) => {
+    return b?.count - a?.count;
+  };
   React.useEffect(() => {
     window.onmessage = (event) => {
       const {type, message} = event.data.pluginMessage;
@@ -96,7 +99,7 @@ const App = ({}) => {
   }, []);
 
   return (
-    <VStack width="100%" height="100%" padding="0">
+    <VStack width="100%" height="100%" padding="0" spacing="0">
       <Drawer isOpen={isOpen} placement="bottom" onClose={onClose} finalFocusRef={btnRef}>
         <DrawerOverlay />
         <DrawerContent>
@@ -158,12 +161,13 @@ const App = ({}) => {
       </Drawer>
       <VStack flex="1" background="gray.50" width="100%" padding="4" spacing="4" overflowY="scroll">
         {stickys?.length > 0 ? (
-          stickys?.map((sticky) => (
+          stickys?.sort(sortByCount).map((sticky) => (
             <Box
               key={sticky.id}
               boxShadow="sm"
               border="1px"
               borderColor="gray.200"
+              background="white"
               padding="4"
               rounded="md"
               width="100%"
@@ -214,7 +218,7 @@ const App = ({}) => {
           </Center>
         )}
       </VStack>
-      <VStack padding="4" paddingY="2" width="100%" borderTop="1px" borderColor="gray.200">
+      <VStack padding="4" paddingY="2" paddingTop="4" width="100%" borderTop="1px" borderColor="gray.200">
         <VCButton ref={btnRef} onClick={onSubmitStickys} colorScheme="blue" disabled={selectedSticky.length < 1}>
           🗳 &nbsp; Start counting {selectedSticky.length > 0 && ` for ${selectedSticky.length} sticky(s)`}
         </VCButton>

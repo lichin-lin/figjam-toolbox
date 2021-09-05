@@ -205,14 +205,16 @@ figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data: StickyType[]) => {
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'create-counter') {
-    const stickys: StickyNode[] = figma.currentPage.selection.filter((n) => n.type === 'STICKY') as StickyNode[];
     let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+    const stickys: StickyNode[] = figma.currentPage.selection.filter(
+      (n) => n.type === 'STICKY' && data.findIndex((datum) => datum.id === n.id) === -1
+    ) as StickyNode[];
     if (data) {
-      let _data = [...data, ...stickys.map((sticky) => ({id: sticky.id, title: sticky.text.characters, count: 0}))];
-      await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, _data);
+      data = [...data, ...stickys.map((sticky) => ({id: sticky.id, title: sticky.text.characters, count: 0}))];
+      await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, data);
       figma.ui.postMessage({
         type: 'sync-counters',
-        message: _data,
+        message: data,
       });
     }
   } else if (msg.type === 'remove-counters') {
@@ -237,8 +239,11 @@ figma.ui.onmessage = async (msg) => {
     }
   }
 };
-figma.on('selectionchange', () => {
-  const stickys = figma.currentPage.selection.filter((n) => n.type === 'STICKY');
+figma.on('selectionchange', async () => {
+  let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+  const stickys = figma.currentPage.selection.filter(
+    (n) => n.type === 'STICKY' && data.findIndex((datum) => datum.id === n.id) === -1
+  );
   figma.ui.postMessage({
     type: 'set-selectedSticky',
     message: stickys,
@@ -258,7 +263,9 @@ const focusElement = (id: string) => {
 };
 
 const countEachSticky = async () => {
-  const allStampElements = figma.currentPage.findAll((e) => e.type === 'STAMP');
+  const allStampElements = figma.currentPage.findAll(
+    (e) => e.type === 'STAMP' || e.type === 'COMPONENT' || e.type === 'INSTANCE'
+  );
   const allStampPos = allStampElements.map((element) => getElementPos(element));
   if (allStampPos) {
     let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
@@ -270,6 +277,7 @@ const countEachSticky = async () => {
           const count = calcStampInArea(areaPos, allStampPos);
           // console.log(`calc: ${sticky.name} | 🗳 ${count}`);
           datum.count = count;
+          datum.title = sticky.text.characters;
         }
         return datum;
       });
