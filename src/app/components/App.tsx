@@ -2,7 +2,6 @@ import {
   Box,
   Button,
   Center,
-  Divider,
   Drawer,
   DrawerBody,
   DrawerContent,
@@ -12,8 +11,6 @@ import {
   Input,
   IconButton,
   Tooltip,
-  InputGroup,
-  InputRightElement,
   Text,
   useDisclosure,
   VStack,
@@ -37,6 +34,7 @@ const App = ({}) => {
   const [polls, setPolls] = React.useState([{title: 'werewkjfnejkngjrenkjreng', id: '123'}]);
   const [options, setOptions] = React.useState<OptionType[]>([]);
   const [pollTitle, setPollTitle] = React.useState<string>();
+  const [stickys, setStickys] = React.useState<any[]>();
   const [selectedSticky, setSelectedSticky] = React.useState<any[]>([]);
   const {isOpen, onOpen, onClose} = useDisclosure();
   const btnRef = React.useRef();
@@ -68,11 +66,15 @@ const App = ({}) => {
     parent.postMessage({pluginMessage: {type: 'create-counter', data: {pollTitle, options}}}, '*');
     onClose();
   };
+  const onSubmitStickys = () => {
+    parent.postMessage({pluginMessage: {type: 'create-counter'}}, '*');
+    onClose();
+  };
   const onZoomToPoll = (id) => {
     parent.postMessage({pluginMessage: {type: 'select-counter', id}}, '*');
   };
-  const onRemove = () => {
-    parent.postMessage({pluginMessage: {type: 'remove-counters'}}, '*');
+  const onRemove = (ids: string[]) => {
+    parent.postMessage({pluginMessage: {type: 'remove-counters', ids}}, '*');
   };
   // const onFind = () => {
   //   parent.postMessage({pluginMessage: {type: 'find-counter'}}, '*');
@@ -80,9 +82,9 @@ const App = ({}) => {
   React.useEffect(() => {
     window.onmessage = (event) => {
       const {type, message} = event.data.pluginMessage;
-      if (type === 'sync-polls') {
-        console.log('polls', message);
-        setPolls(message);
+      if (type === 'sync-counters') {
+        // console.log('stickys', message);
+        setStickys(message);
       } else if (type === 'set-selectedSticky') {
         console.log('set-selectedSticky', message);
         setSelectedSticky(message);
@@ -90,7 +92,7 @@ const App = ({}) => {
     };
   }, []);
   React.useEffect(() => {
-    // parent.postMessage({pluginMessage: {type: 'fetch-polls'}}, '*');
+    parent.postMessage({pluginMessage: {type: 'fetch-counters'}}, '*');
   }, []);
 
   return (
@@ -155,25 +157,23 @@ const App = ({}) => {
         </DrawerContent>
       </Drawer>
       <VStack flex="1" background="gray.50" width="100%" padding="4" spacing="4" overflowY="scroll">
-        {polls.length > 0 ? (
-          polls?.map((poll) => (
+        {stickys?.length > 0 ? (
+          stickys?.map((sticky) => (
             <Box
-              key={poll.id}
+              key={sticky.id}
               boxShadow="sm"
               border="1px"
               borderColor="gray.200"
               padding="4"
               rounded="md"
               width="100%"
-              onClick={() => onZoomToPoll(poll.id)}
-              cursor={'pointer'}
             >
               <HStack justifyContent="space-between">
                 <Text fontWeight="bold" color="gray.600" maxWidth="180px" isTruncated>
-                  {poll?.title}
+                  {sticky?.title || `Sticky #${sticky.id + 1}`}
                 </Text>
                 <HStack width="64px">
-                  <Tooltip label="Foucs to the poll">
+                  <Tooltip label="Foucs to the sticky">
                     <IconButton
                       aria-label="focus"
                       icon={<FocusIcon />}
@@ -184,6 +184,7 @@ const App = ({}) => {
                       _hover={{
                         background: 'green.100',
                       }}
+                      onClick={() => onZoomToPoll(sticky.id)}
                     ></IconButton>
                   </Tooltip>
                   <Tooltip label="Stop counting">
@@ -197,27 +198,35 @@ const App = ({}) => {
                       _hover={{
                         background: 'red.100',
                       }}
+                      onClick={() => onRemove([sticky.id])}
                     ></IconButton>
                   </Tooltip>
                 </HStack>
               </HStack>
-              <Text fontWeight="normal" color="gray.400" fontSize="xs">{`${poll?.options?.length} option(s)`}</Text>
+              <Text fontWeight="normal" color="gray.500" fontSize="sm">{`${sticky?.count} vote(s)`}</Text>
             </Box>
           ))
         ) : (
           <Center width="100%" height="100%" fontSize="sm" color="gray.500" textAlign="center">
             <p>
-              👇 Start making your first polls by <b>selecting some sticky on the canvas</b>
+              👇 Start automatically counting by <b>selecting some sticky on the canvas</b>
             </p>
           </Center>
         )}
       </VStack>
-      <VStack padding="4" paddingY="2" width="100%">
-        <VCButton ref={btnRef} onClick={onAddPoll} colorScheme="blue" disabled={selectedSticky.length < 1}>
-          🗳 &nbsp; Add a Poll {selectedSticky.length > 0 && `with ${selectedSticky.length} option(s)`}
+      <VStack padding="4" paddingY="2" width="100%" borderTop="1px" borderColor="gray.200">
+        <VCButton ref={btnRef} onClick={onSubmitStickys} colorScheme="blue" disabled={selectedSticky.length < 1}>
+          🗳 &nbsp; Start counting {selectedSticky.length > 0 && ` for ${selectedSticky.length} sticky(s)`}
         </VCButton>
-        <VCButton onClick={onRemove} variant="ghost" size="xs" padding="4" color="red.400" disabled={polls.length < 1}>
-          Stop counting for all the Polls
+        <VCButton
+          onClick={() => onRemove([...(stickys.map((sticky) => sticky.id) as string[])])}
+          variant="ghost"
+          size="xs"
+          padding="4"
+          color="red.400"
+          disabled={stickys?.length < 1}
+        >
+          Stop counting for all Stickys
         </VCButton>
       </VStack>
       {/* <VCButton onClick={onFind}>👑 &nbsp; find winner</VCButton> */}
