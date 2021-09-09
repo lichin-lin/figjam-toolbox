@@ -76,6 +76,9 @@ const App = ({}) => {
   const onRemove = (ids: string[]) => {
     parent.postMessage({pluginMessage: {type: 'remove-counters', ids}}, '*');
   };
+  const toggleEraser = () => {
+    parent.postMessage({pluginMessage: {type: 'toggle-eraser'}}, '*');
+  };
   // const onFind = () => {
   //   parent.postMessage({pluginMessage: {type: 'find-counter'}}, '*');
   // };
@@ -221,6 +224,9 @@ const App = ({}) => {
       <VStack padding="4" paddingY="2" paddingTop="4" width="100%" borderTop="1px" borderColor="gray.200">
         <VCButton ref={btnRef} onClick={onSubmitStickys} colorScheme="blue" disabled={selectedSticky.length < 1}>
           🗳 &nbsp; Start counting {selectedSticky.length > 0 && ` for ${selectedSticky.length} sticky(s)`}
+        </VCButton>
+        <VCButton ref={btnRef} onClick={toggleEraser} colorScheme="blue">
+          toggle eraser 🖍
         </VCButton>
         <VCButton
           onClick={() => onRemove([...(stickys.map((sticky) => sticky.id) as string[])])}

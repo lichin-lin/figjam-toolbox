@@ -1,3 +1,5 @@
+var parseSVG = require('svg-path-parser');
+
 figma.showUI(__html__, {width: 300, height: 400});
 const USER_DATA_ENDPOINT = 'user_data';
 
@@ -237,6 +239,31 @@ figma.ui.onmessage = async (msg) => {
         message: data,
       });
     }
+  } else if (msg.type === 'toggle-eraser') {
+    // eraser name = 'eraser'
+    const eraser = figma.currentPage.findChildren((n) => n.name === 'eraser');
+    console.log(eraser);
+
+    if (eraser.length > 0) {
+      eraser?.[0].remove();
+    } else {
+      const eraserComponent = figma.createEllipse();
+      eraserComponent.name = 'eraser';
+      eraserComponent.resize(40, 40);
+      eraserComponent.fills = [
+        {
+          type: 'SOLID',
+          color: {
+            r: 0,
+            g: 0,
+            b: 0,
+          },
+          opacity: 0.2,
+        },
+      ];
+      figma.currentPage.selection = [eraserComponent];
+      figma.viewport.scrollAndZoomIntoView([eraserComponent]);
+    }
   }
 };
 figma.on('selectionchange', async () => {
@@ -252,6 +279,7 @@ figma.on('selectionchange', async () => {
 
 setInterval(async () => {
   countEachSticky();
+  checkEraser();
 }, 1000);
 
 const focusElement = (id: string) => {
@@ -285,6 +313,59 @@ const countEachSticky = async () => {
       figma.ui.postMessage({
         type: 'sync-counters',
         message: data,
+      });
+    }
+  }
+};
+
+const checkEraser = () => {
+  const eraser = figma.currentPage.findChildren((n) => n.name === 'eraser');
+  const allStroke = figma.currentPage.findChildren((n) => n.type === 'VECTOR');
+  if (eraser.length > 0) {
+    const eraserComponent = eraser?.[0];
+    if (eraserComponent) {
+      allStroke.forEach((stroke: VectorNode) => {
+        const commands = parseSVG(stroke.vectorPaths?.[0]?.data);
+        const filterCommands = commands.filter((command) => {
+          if (command.code === 'M') {
+            if (
+              command.x + stroke.x > eraserComponent.x &&
+              command.x + stroke.x < eraserComponent.x + eraserComponent.width &&
+              command.y + stroke.y > eraserComponent.y &&
+              command.y + stroke.y < eraserComponent.y + eraserComponent.height
+            ) {
+              return false;
+            }
+            return true;
+          } else if (command.code === 'C') {
+            if (
+              command.x + stroke.x > eraserComponent.x &&
+              command.x + stroke.x < eraserComponent.x + eraserComponent.width &&
+              command.y + stroke.y > eraserComponent.y &&
+              command.y + stroke.y < eraserComponent.y + eraserComponent.height
+            ) {
+              return false;
+            }
+            return true;
+          } else if (command.code === 'L') {
+            // Pass
+            return true;
+          } else {
+            // Pass
+            return true;
+          }
+        });
+        console.log('clean...', parseSVG(stroke.vectorPaths?.[0]?.data));
+        console.log('after...', filterCommands);
+        // stroke.vectorPaths = [
+        //   {
+        //     windingRule: 'NONE',
+        //     data: `M ${strokeData?.[0]?.x} ${strokeData?.[0]?.y} ${strokeData
+        //       .slice(1)
+        //       ?.map((s) => `C ${s?.x} ${s?.y}`)
+        //       .join(' ')}`,
+        //   },
+        // ];
       });
     }
   }
