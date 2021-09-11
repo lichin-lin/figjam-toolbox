@@ -162,7 +162,7 @@ const App = ({}) => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-      <VStack flex="1" background="gray.50" width="100%" padding="4" spacing="4" overflowY="scroll">
+      {/* <VStack flex="1" background="gray.50" width="100%" padding="4" spacing="4" overflowY="scroll">
         {stickys?.length > 0 ? (
           stickys?.sort(sortByCount).map((sticky) => (
             <Box
@@ -220,15 +220,15 @@ const App = ({}) => {
             </p>
           </Center>
         )}
-      </VStack>
+      </VStack> */}
       <VStack padding="4" paddingY="2" paddingTop="4" width="100%" borderTop="1px" borderColor="gray.200">
-        <VCButton ref={btnRef} onClick={onSubmitStickys} colorScheme="blue" disabled={selectedSticky.length < 1}>
+        {/* <VCButton ref={btnRef} onClick={onSubmitStickys} colorScheme="blue" disabled={selectedSticky.length < 1}>
           🗳 &nbsp; Start counting {selectedSticky.length > 0 && ` for ${selectedSticky.length} sticky(s)`}
+        </VCButton> */}
+        <VCButton ref={btnRef} onClick={toggleEraser} colorScheme="gray">
+          toggle eraser 🗑
         </VCButton>
-        <VCButton ref={btnRef} onClick={toggleEraser} colorScheme="blue">
-          toggle eraser 🖍
-        </VCButton>
-        <VCButton
+        {/* <VCButton
           onClick={() => onRemove([...(stickys.map((sticky) => sticky.id) as string[])])}
           variant="ghost"
           size="xs"
@@ -237,7 +237,7 @@ const App = ({}) => {
           disabled={stickys?.length < 1}
         >
           Stop counting for all Stickys
-        </VCButton>
+        </VCButton> */}
       </VStack>
       {/* <VCButton onClick={onFind}>👑 &nbsp; find winner</VCButton> */}
     </VStack>
