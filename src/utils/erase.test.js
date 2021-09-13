@@ -1,4 +1,4 @@
-import {erase} from './erase.js';
+import {erase} from './erase.ts';
 
 describe('Eraser test cases', () => {
   it('return corrct paths', () => {

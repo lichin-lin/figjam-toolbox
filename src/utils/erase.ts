@@ -141,7 +141,7 @@ export function erase(paths, erasePath, eraseRadius) {
     var e0 = erasePath[i];
     var e1 = erasePath[i + 1];
 
-    var i = 0;
+    i = 0;
     var last = 0;
 
     // handle point path
@@ -383,7 +383,7 @@ function logPath(path, displaySwitch) {
  *  Takes a list of paths, and will write them to the console.
  */
 function logPaths(paths) {
-  log = '';
+  let log = '';
   log += '[';
   for (var i = 0; i < paths.length - 1; i++) {
     log += logPath(paths[i], 0);
@@ -556,7 +556,7 @@ function getCircleIntersection(aX, aY, bX, bY, cX, cY, r) {
   if (distCToRightPoint === 0) {
     b = r;
   } else {
-    var b = Math.sqrt(Math.pow(r, 2) - Math.pow(distCToRightPoint, 2));
+    b = Math.sqrt(Math.pow(r, 2) - Math.pow(distCToRightPoint, 2));
   }
   var intersection = [aX + ac_proj_ab * u_vec_ab[0] + b * u_vec_ab[0], aY + ac_proj_ab * u_vec_ab[1] + b * u_vec_ab[1]];
   if (intersection[0] === aX && intersection[1] === aY) return null;
@@ -732,30 +732,24 @@ function getCapsuleIntersections(aX, aY, bX, bY, c0_x, c0_y, c1_x, c1_y, r) {
   else return [intersection0, intersection1];
 }
 
+type point = [number, number];
+type vector = [number, number];
 /*
- * Takes an array of coordinates P.
- * Returns the length of that vector (distance from the origin to point P).
+ * Returns the length of a vector (distance from the origin to point P).
  */
-var getLength = function (P) {
-  return Math.sqrt(P[0] * P[0] + P[1] * P[1]);
-};
+const getLength = (P: vector) => Math.sqrt(P[0] * P[0] + P[1] * P[1]);
 
-var EPS = 1e-6;
-
+const EPS = 1e-6;
 /*
- * Takes the points A and B (length 2 arrays): the points that define the line segment.
- * Takes P: the point in question.
  * Returns the closest point on the line segment AB to point P.
  */
-var getClosestPointOnSegment = function (A, B, P) {
-  var AB = [B[0] - A[0], B[1] - A[1]],
+const getClosestPointOnSegment = (A: point, B: point, P: point) => {
+  const AB: vector = [B[0] - A[0], B[1] - A[1]],
     len = getLength(AB);
   if (len < EPS) return A;
-  var PA = [P[0] - A[0], P[1] - A[1]];
-  var k = (AB[0] * PA[0] + AB[1] * PA[1]) / len;
+  const PA = [P[0] - A[0], P[1] - A[1]];
+  const k = (AB[0] * PA[0] + AB[1] * PA[1]) / len;
   if (k < 0) return A;
   if (k > len) return B;
   return [A[0] + (AB[0] * k) / len, A[1] + (AB[1] * k) / len];
 };
-
-// module.exports = erase;
