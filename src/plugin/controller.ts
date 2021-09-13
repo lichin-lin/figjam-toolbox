@@ -1,6 +1,3 @@
-import {erase} from '../utils/erase';
-var parseSVG = require('svg-path-parser');
-
 figma.showUI(__html__, {width: 300, height: 400});
 const USER_DATA_ENDPOINT = 'user_data';
 
@@ -240,31 +237,6 @@ figma.ui.onmessage = async (msg) => {
         message: data,
       });
     }
-  } else if (msg.type === 'toggle-eraser') {
-    // eraser name = 'eraser'
-    const eraser = figma.currentPage.findChildren((n) => n.name === 'eraser');
-    console.log(eraser);
-
-    if (eraser.length > 0) {
-      eraser?.[0].remove();
-    } else {
-      const eraserComponent = figma.createEllipse();
-      eraserComponent.name = 'eraser';
-      eraserComponent.resize(40, 40);
-      eraserComponent.fills = [
-        {
-          type: 'SOLID',
-          color: {
-            r: 0,
-            g: 0,
-            b: 0,
-          },
-          opacity: 0.2,
-        },
-      ];
-      figma.currentPage.selection = [eraserComponent];
-      figma.viewport.scrollAndZoomIntoView([eraserComponent]);
-    }
   }
 };
 figma.on('selectionchange', async () => {
@@ -272,6 +244,7 @@ figma.on('selectionchange', async () => {
   const stickys = figma.currentPage.selection.filter(
     (n) => n.type === 'STICKY' && data.findIndex((datum) => datum.id === n.id) === -1
   );
+
   figma.ui.postMessage({
     type: 'set-selectedSticky',
     message: stickys,
@@ -280,8 +253,7 @@ figma.on('selectionchange', async () => {
 
 setInterval(async () => {
   countEachSticky();
-  checkEraser();
-}, 1000 / 10);
+}, 1000 / 1);
 
 const focusElement = (id: string) => {
   const element = figma.currentPage.findChild((e) => e.id === id);
@@ -311,118 +283,11 @@ const countEachSticky = async () => {
         return datum;
       });
       await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, data);
+
       figma.ui.postMessage({
         type: 'sync-counters',
         message: data,
       });
     }
   }
-};
-
-const checkEraser = () => {
-  const eraser = figma.currentPage.findChildren((n) => n.name === 'eraser');
-  if (eraser.length < 1) return;
-
-  const eraserComponent = eraser?.[0];
-  const allStroke = figma.currentPage.findChildren((n) => n.type === 'VECTOR');
-
-  allStroke?.forEach((stroke: VectorNode) => {
-    // 1. check if the eraser obj is inside stroke's boundary.
-    const areaForStroke = getElementPos(stroke);
-    const areaForEraer = getElementPos(eraserComponent);
-    if (calcElementInArea(areaForStroke, [areaForEraer]) === 0) {
-      // stroke.strokes = stroke.strokes.map((s) => ({...s, color: {r: 0.3, g: 0.3, b: 0.3}}));
-      console.log('nothing between them, pass...', stroke.id);
-      return;
-    }
-    // DEBUG
-    // stroke.strokes = stroke.strokes.map((s) => ({...s, color: {r: 1, g: 0.5, b: 0.5}}));
-
-    // 2. check if any of the point is interset w/ eraser.
-    const path = stroke.vectorPaths?.[0]?.data;
-    if (!path) return;
-    const commands = parseSVG(path);
-
-    // 🌲 Result 1. just use filter
-    // const filterCommands = commands.filter((command) => {
-    //   if (command.code === 'M') {
-    //     if (
-    //       command.x + stroke.x > eraserComponent.x &&
-    //       command.x + stroke.x < eraserComponent.x + eraserComponent.width &&
-    //       command.y + stroke.y > eraserComponent.y &&
-    //       command.y + stroke.y < eraserComponent.y + eraserComponent.height
-    //     ) {
-    //       return false;
-    //     }
-    //     return true;
-    //   } else if (command.code === 'C') {
-    //     if (
-    //       command.x + stroke.x > eraserComponent.x &&
-    //       command.x + stroke.x < eraserComponent.x + eraserComponent.width &&
-    //       command.y + stroke.y > eraserComponent.y &&
-    //       command.y + stroke.y < eraserComponent.y + eraserComponent.height
-    //     ) {
-    //       return false;
-    //     }
-    //     return true;
-    //   } else if (command.code === 'L') {
-    //     // Pass
-    //     return true;
-    //   } else {
-    //     // Pass
-    //     return true;
-    //   }
-    // });
-    // const newCommands = formSVG(filterCommands);
-    // stroke.vectorPaths = [
-    //   {
-    //     windingRule: 'NONE',
-    //     data: newCommands,
-    //   },
-    // ];
-
-    // 😳 Result 2. use erase lib.
-    let _newCommands = erase(
-      [commands.map((singleParsedSVG) => [singleParsedSVG.x + stroke.x, singleParsedSVG.y + stroke.y])],
-      [[eraserComponent.x + eraserComponent.width / 2, eraserComponent.y + eraserComponent.height / 2]],
-      eraserComponent.width / 2
-    );
-    if (_newCommands.length === 0) {
-      stroke.remove();
-    }
-
-    _newCommands = _newCommands?.[0].map((_newCommand, id) => ({
-      ...commands?.[id],
-      x: Math.ceil(_newCommand[0] - stroke.x),
-      y: Math.ceil(_newCommand[1] - stroke.y),
-    }));
-    const newCommands = formSVG(_newCommands);
-    try {
-      stroke.vectorPaths = [
-        {
-          windingRule: 'NONE',
-          data: newCommands,
-        },
-      ];
-    } catch (e) {
-      console.log('error when setting...', e);
-    }
-  });
-};
-
-const formSVG = (parsedSVG) => {
-  return parsedSVG
-    .map((singleParsedSVG, id) => {
-      // make sure there's always `M` at the beginning.
-      if (id === 0) {
-        return `M ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (id === parsedSVG.length - 1) {
-        return `L ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (singleParsedSVG.code === 'M') {
-        return `M ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (singleParsedSVG.code === 'C') {
-        return `C ${singleParsedSVG.x1} ${singleParsedSVG.y1} ${singleParsedSVG.x2} ${singleParsedSVG.y2} ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      }
-    })
-    .join(' ');
 };
