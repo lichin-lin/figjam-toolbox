@@ -306,7 +306,6 @@ export function erase(paths, erasePath, eraseRadius) {
   //var time2 = date.getMilliseconds();
   //var deltaT = time2 - time1;
   //console.log(deltaT);
-
   return paths;
 } // end erase
 
@@ -758,3 +757,5 @@ var getClosestPointOnSegment = function (A, B, P) {
   if (k > len) return B;
   return [A[0] + (AB[0] * k) / len, A[1] + (AB[1] * k) / len];
 };
+
+// module.exports = erase;
