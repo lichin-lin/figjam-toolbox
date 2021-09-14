@@ -280,7 +280,7 @@ figma.on('selectionchange', async () => {
 
 setInterval(async () => {
   checkEraser();
-}, 1000 / 1);
+}, 1000 / 10);
 
 const focusElement = (id: string) => {
   const element = figma.currentPage.findChild((e) => e.id === id);
