@@ -354,45 +354,78 @@ const checkEraser = () => {
     // 😳 Result 2. use erase lib.
     let _newCommands = erase(
       [commands.map((singleParsedSVG) => [singleParsedSVG.x + stroke.x, singleParsedSVG.y + stroke.y])],
-      [[eraserComponent.x + eraserComponent.width / 2, eraserComponent.y + eraserComponent.height / 2]],
+      [eraserComponent.x + eraserComponent.width / 2, eraserComponent.y + eraserComponent.height / 2],
       eraserComponent.width / 2
     );
-    if (_newCommands.length === 0) {
-      stroke.remove();
-    }
 
-    _newCommands = _newCommands?.[0].map((_newCommand, id) => ({
-      ...commands?.[id],
-      x: Math.ceil(_newCommand[0] - stroke.x),
-      y: Math.ceil(_newCommand[1] - stroke.y),
-    }));
-    const newCommands = formSVG(_newCommands);
-    try {
-      stroke.vectorPaths = [
-        {
-          windingRule: 'NONE',
-          data: newCommands,
-        },
-      ];
-    } catch (e) {
-      console.log('error when setting...', e);
-    }
+    _newCommands.map((_newCommand, cId) => {
+      const _calcNewCommand = _newCommand.map((point) => [
+        Math.ceil(point[0] - _newCommands[cId][0][0]),
+        Math.ceil(point[1] - _newCommands[cId][0][1]),
+      ]);
+      try {
+        const newStrokeElm = stroke.clone();
+        newStrokeElm.x = _newCommands[cId][0][0];
+        newStrokeElm.y = _newCommands[cId][0][1];
+        newStrokeElm.vectorPaths = [
+          {
+            windingRule: 'NONE',
+            data: drawBeautifulLine(_calcNewCommand, bezierCommand),
+          },
+        ];
+      } catch (e) {
+        console.log('error when setting...', e);
+      }
+    });
+    // remove old and redraw...(!)
+    stroke.remove();
   });
 };
 
-const formSVG = (parsedSVG) => {
-  return parsedSVG
-    .map((singleParsedSVG, id) => {
-      // make sure there's always `M` at the beginning.
-      if (id === 0) {
-        return `M ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (id === parsedSVG.length - 1) {
-        return `L ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (singleParsedSVG.code === 'M') {
-        return `M ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      } else if (singleParsedSVG.code === 'C') {
-        return `C ${singleParsedSVG.x1} ${singleParsedSVG.y1} ${singleParsedSVG.x2} ${singleParsedSVG.y2} ${singleParsedSVG.x} ${singleParsedSVG.y}`;
-      }
-    })
-    .join(' ');
+const drawBeautifulLine = (points, command) => {
+  // build the d attributes by looping over the points
+  const d = points.reduce(
+    (acc, point, i, a) =>
+      i === 0
+        ? // if first point
+          `M ${point[0]} ${point[1]}`
+        : // else
+          `${acc} ${command(point, i, a)}`,
+    ''
+  );
+  return d;
+};
+const lineCommand = (point) => `L ${point[0]} ${point[1]}`;
+const line = (pointA, pointB) => {
+  const lengthX = pointB[0] - pointA[0];
+  const lengthY = pointB[1] - pointA[1];
+  return {
+    length: Math.sqrt(Math.pow(lengthX, 2) + Math.pow(lengthY, 2)),
+    angle: Math.atan2(lengthY, lengthX),
+  };
+};
+const controlPoint = (current, previous, next, reverse) => {
+  // When 'current' is the first or last point of the array
+  // 'previous' or 'next' don't exist.
+  // Replace with 'current'
+  const p = previous || current;
+  const n = next || current;
+  // The smoothing ratio
+  const smoothing = 0.2;
+  // Properties of the opposed-line
+  const o = line(p, n);
+  // If is end-control-point, add PI to the angle to go backward
+  const angle = o.angle + (reverse ? Math.PI : 0);
+  const length = o.length * smoothing;
+  // The control point position is relative to the current point
+  const x = current[0] + Math.cos(angle) * length;
+  const y = current[1] + Math.sin(angle) * length;
+  return [x, y];
+};
+const bezierCommand = (point, i, a) => {
+  // start control point
+  const [cpsX, cpsY] = controlPoint(a[i - 1], a[i - 2], point, false);
+  // end control point
+  const [cpeX, cpeY] = controlPoint(point, a[i - 1], a[i + 1], true);
+  return `C ${cpsX} ${cpsY} ${cpeX} ${cpeY} ${point[0]} ${point[1]}`;
 };
