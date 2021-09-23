@@ -1,6 +1,5 @@
 import {erase} from '../utils/erase';
 const parseSVG = require('svg-path-parser');
-const paper = require('paper');
 
 figma.showUI(__html__, {width: 300, height: 400});
 
@@ -52,7 +51,7 @@ figma.ui.onmessage = async (msg) => {
 
 setInterval(async () => {
   checkEraser();
-}, 1000 / 1);
+}, 1000 / 10);
 
 const checkEraser = () => {
   // 1. Check Eraser
@@ -101,11 +100,6 @@ const checkEraser = () => {
         Math.ceil(point[0] - _absolutePoints[id][0][0]),
         Math.ceil(point[1] - _absolutePoints[id][0][1]),
       ]);
-      let path = new paper.Path();
-      // path.add([0, 100]);
-      // path.smooth();
-      // console.log(path);
-
       try {
         const newStrokeElm = doodle.clone();
         newStrokeElm.x = _absolutePoints[id][0][0];
@@ -113,6 +107,7 @@ const checkEraser = () => {
         newStrokeElm.vectorPaths = [
           {
             windingRule: 'NONE',
+            // TODO: simulate how figjam draw doodle.
             data: drawBeautifulLine(calcPointOnPath, bezierCommand),
           },
         ];
