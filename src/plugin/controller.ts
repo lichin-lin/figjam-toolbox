@@ -71,9 +71,12 @@ const checkEraser = () => {
     }
 
     const path = doodle.vectorPaths?.[0]?.data;
+    // console.log('path', path);
+
     if (!path) return;
     // 3. Parse path into svg commands
     const commands = parseSVG(path);
+    // console.log('parsed', commands);
 
     /**
      * 4. Erase the point on the svg commands, using erase() function
@@ -81,25 +84,36 @@ const checkEraser = () => {
      *    so we're able to know if any of the points is interact with eraser;
      */
     const absolutePoints = commands.map((singleParsedSVGCommand) => [
-      singleParsedSVGCommand.x + doodle.x,
-      singleParsedSVGCommand.y + doodle.y,
+      (singleParsedSVGCommand?.x || 0) + doodle.x,
+      (singleParsedSVGCommand?.y || 0) + doodle.y,
     ]);
+    console.log(absolutePoints);
+    // return
     const eraserCentrePoint = [
       eraserComponent.x + eraserComponent.width / 2,
       eraserComponent.y + eraserComponent.height / 2,
     ] as [number, number];
-    let _absolutePoints = erase([absolutePoints], eraserCentrePoint, eraserComponent.width / 2);
+
+    let _absolutePoints;
+    // return
+    try {
+      _absolutePoints = erase([absolutePoints], eraserCentrePoint, eraserComponent.width / 2);
+    } catch (e) {
+      console.log('error when erasing...', e);
+    }
+
     /**
      * 5. _absolutePoints: since we might let one doodle stroke become two segment,
      *    we need to map through them to render on the canvas.
      */
-
     _absolutePoints.map((pointOnPath, id) => {
       // 6. we need to, make each point on path from absolute coordinate to it's local relative coordinate.
       const calcPointOnPath = pointOnPath.map((point) => [
         Math.ceil(point[0] - _absolutePoints[id][0][0]),
         Math.ceil(point[1] - _absolutePoints[id][0][1]),
       ]);
+      console.log(calcPointOnPath);
+
       try {
         const newStrokeElm = doodle.clone();
         newStrokeElm.x = _absolutePoints[id][0][0];
@@ -146,7 +160,7 @@ const controlPoint = (current, previous, next, reverse) => {
   const p = previous || current;
   const n = next || current;
   // The smoothing ratio
-  const smoothing = 0.2;
+  const smoothing = 0.3;
   // Properties of the opposed-line
   const o = line(p, n);
   // If is end-control-point, add PI to the angle to go backward
