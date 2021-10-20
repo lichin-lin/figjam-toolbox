@@ -1,5 +1,27 @@
+import Tracking from './tracking';
 figma.showUI(__html__, {width: 300, height: 400});
+const STICKY_DATA_ENDPOINT = 'sticky_data';
 const USER_DATA_ENDPOINT = 'user_data';
+// init: Setting tracking info / fetch storage
+figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data) => {
+  if (!data || !data?.UUID) {
+    const _data = {
+      UUID: Tracking.createUUID(),
+    };
+    figma.clientStorage.setAsync(USER_DATA_ENDPOINT, _data);
+    figma.ui.postMessage({
+      type: 'track-init-without-data',
+      message: _data,
+    });
+    return;
+  } else {
+    figma.ui.postMessage({
+      type: 'track-init-with-data',
+      message: data,
+    });
+    return;
+  }
+});
 
 /**
  *  TODO: making a group of sticky = Polls is hard,
@@ -196,22 +218,22 @@ interface StickyType {
 
 figma.loadFontAsync({family: 'Roboto', style: 'Regular'});
 figma.loadFontAsync({family: 'Inter', style: 'Medium'});
-figma.clientStorage.getAsync(USER_DATA_ENDPOINT).then((data: StickyType[]) => {
+figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT).then((data: StickyType[]) => {
   if (!data) {
-    figma.clientStorage.setAsync(USER_DATA_ENDPOINT, []);
+    figma.clientStorage.setAsync(STICKY_DATA_ENDPOINT, []);
     return;
   }
 });
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'create-counter') {
-    let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+    let data: StickyType[] = await figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT);
     const stickys: StickyNode[] = figma.currentPage.selection.filter(
       (n) => n.type === 'STICKY' && data.findIndex((datum) => datum.id === n.id) === -1
     ) as StickyNode[];
     if (data) {
       data = [...data, ...stickys.map((sticky) => ({id: sticky.id, title: sticky.text.characters, count: 0}))];
-      await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, data);
+      await figma.clientStorage.setAsync(STICKY_DATA_ENDPOINT, data);
       figma.ui.postMessage({
         type: 'sync-counters',
         message: data,
@@ -219,10 +241,10 @@ figma.ui.onmessage = async (msg) => {
     }
   } else if (msg.type === 'remove-counters') {
     let shouldRemoveList: string[] = msg.ids;
-    let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+    let data: StickyType[] = await figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT);
     data = data.filter((datum) => shouldRemoveList.findIndex((removeID) => removeID === datum.id) === -1);
 
-    await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, data);
+    await figma.clientStorage.setAsync(STICKY_DATA_ENDPOINT, data);
     figma.ui.postMessage({
       type: 'sync-counters',
       message: data,
@@ -230,7 +252,7 @@ figma.ui.onmessage = async (msg) => {
   } else if (msg.type === 'select-counter') {
     focusElement(msg.id);
   } else if (msg.type === 'fetch-counters') {
-    const data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+    const data: StickyType[] = await figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT);
     if (data) {
       figma.ui.postMessage({
         type: 'sync-counters',
@@ -240,7 +262,7 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 figma.on('selectionchange', async () => {
-  let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+  let data: StickyType[] = await figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT);
   const stickys = figma.currentPage.selection.filter(
     (n) => n.type === 'STICKY' && data.findIndex((datum) => datum.id === n.id) === -1
   );
@@ -269,7 +291,7 @@ const countEachSticky = async () => {
   );
   const allStampPos = allStampElements.map((element) => getElementPos(element));
   if (allStampPos) {
-    let data: StickyType[] = await figma.clientStorage.getAsync(USER_DATA_ENDPOINT);
+    let data: StickyType[] = await figma.clientStorage.getAsync(STICKY_DATA_ENDPOINT);
     if (data) {
       data = data?.map((datum: StickyType) => {
         const sticky: StickyNode = figma.currentPage.findChild((e) => e.id === datum.id) as StickyNode;
@@ -282,7 +304,7 @@ const countEachSticky = async () => {
         }
         return datum;
       });
-      await figma.clientStorage.setAsync(USER_DATA_ENDPOINT, data);
+      await figma.clientStorage.setAsync(STICKY_DATA_ENDPOINT, data);
 
       figma.ui.postMessage({
         type: 'sync-counters',

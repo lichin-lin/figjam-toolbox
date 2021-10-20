@@ -17,6 +17,8 @@ import {
 } from '@chakra-ui/react';
 import {UnlinkIcon, FocusIcon} from './Icons';
 import * as React from 'react';
+import Tracking from '../../plugin/tracking';
+
 declare function require(path: string): any;
 
 interface OptionType {
@@ -67,13 +69,20 @@ const App = ({}) => {
     onClose();
   };
   const onSubmitStickys = () => {
+    Tracking.track('create counter', {count: selectedSticky?.length});
     parent.postMessage({pluginMessage: {type: 'create-counter'}}, '*');
     onClose();
   };
   const onZoomToPoll = (id) => {
+    Tracking.track('zoom to sticky');
     parent.postMessage({pluginMessage: {type: 'select-counter', id}}, '*');
   };
   const onRemove = (ids: string[]) => {
+    if (ids.length === 1) {
+      Tracking.track('remove counter', {type: 'single'});
+    } else if (ids.length > 1) {
+      Tracking.track('remove counter', {type: 'all'});
+    }
     parent.postMessage({pluginMessage: {type: 'remove-counters', ids}}, '*');
   };
   // const onFind = () => {
@@ -91,6 +100,13 @@ const App = ({}) => {
       } else if (type === 'set-selectedSticky') {
         console.log('set-selectedSticky', message);
         setSelectedSticky(message);
+      } else if (type === 'track-init-with-data') {
+        Tracking.setup('93b72d0e8e42bf8d7b41c06427c4a0c4', message.UUID);
+        Tracking.track('[Open] with data');
+      } else if (type === 'track-init-without-data') {
+        Tracking.setup('93b72d0e8e42bf8d7b41c06427c4a0c4', message.UUID);
+        Tracking.track('[Open] without data');
+      } else {
       }
     };
   }, []);
